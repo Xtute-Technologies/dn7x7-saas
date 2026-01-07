@@ -1,0 +1,1 @@
+# Dairy News 7x7 API Platform - NextJs

@@ -1,0 +1,165 @@
+"use client"
+
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import * as z from "zod"
+import { cn } from "@/lib/utils"
+import { Button } from "@/components/ui/button"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
+import {
+  Field,
+  FieldDescription,
+  FieldGroup,
+  FieldLabel,
+  FieldError,
+} from "@/components/ui/field"
+import { Input } from "@/components/ui/input"
+import { useAuth } from "@/context/AuthContext"
+import { useState } from "react"
+import Link from "next/link"
+
+import { signupSchema } from "@/schemas/auth";
+
+export function SignupForm({ className, ...props }) {
+  const { signup } = useAuth()
+  const [apiError, setApiError] = useState(null)
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm({
+    resolver: zodResolver(signupSchema),
+  })
+
+  const onSubmit = async (data) => {
+    setApiError(null)
+    try {
+      await signup(data)
+    } catch (error) {
+      if (error.response && error.response.data) {
+        // Assuming the backend returns errors in a specific format
+        const errorData = error.response.data
+        let errorMessage = "Signup failed. "
+        if (typeof errorData === "string") {
+          errorMessage += errorData
+        } else if (typeof errorData === "object") {
+          // Concatenate all error messages from the backend
+          errorMessage += Object.values(errorData).flat().join(" ")
+        }
+        setApiError(errorMessage)
+      } else {
+        setApiError("An unexpected error occurred. Please try again.")
+      }
+    }
+  }
+
+  return (
+    <div className={cn("flex flex-col gap-6", className)} {...props}>
+      <Card>
+        <CardHeader className="text-center">
+          <CardTitle className="text-xl">Create your account</CardTitle>
+          <CardDescription>
+            Enter your details below to create your account
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit(onSubmit)}>
+            <FieldGroup>
+              {apiError && (
+                <div className="text-red-500 text-sm text-center">
+                  {apiError}
+                </div>
+              )}
+              <Field>
+                <FieldLabel htmlFor="name">Full Name</FieldLabel>
+                <Input
+                  id="name"
+                  type="text"
+                  placeholder="John Doe"
+                  {...register("name")}
+                />
+                {errors.name && <FieldError>{errors.name.message}</FieldError>}
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="email">Email</FieldLabel>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="m@example.com"
+                  {...register("email")}
+                />
+                {errors.email && (
+                  <FieldError>{errors.email.message}</FieldError>
+                )}
+              </Field>
+              <Field>
+                <div className="grid grid-cols-2 gap-4">
+                  <Field>
+                    <FieldLabel htmlFor="password">Password</FieldLabel>
+                    <Input
+                      id="password"
+                      type="password"
+                      {...register("password")}
+                    />
+                    {errors.password && (
+                      <FieldError>{errors.password.message}</FieldError>
+                    )}
+                  </Field>
+                  <Field>
+                    <FieldLabel htmlFor="re_password">
+                      Confirm Password
+                    </FieldLabel>
+                    <Input
+                      id="re_password"
+                      type="password"
+                      {...register("re_password")}
+                    />
+                    {errors.re_password && (
+                      <FieldError>
+                        {errors.re_password.message}
+                      </FieldError>
+                    )}
+                  </Field>
+                </div>
+                <FieldDescription>
+                  Must be at least 8 characters long.
+                </FieldDescription>
+              </Field>
+              <Field>
+                <Button type="submit" className="w-full">
+                  Create Account
+                </Button>
+                <FieldDescription className="text-center">
+                  Already have an account?{" "}
+                  <Link
+                    href="/login"
+                    className="underline underline-offset-4 hover:text-primary"
+                  >
+                    Sign in
+                  </Link>
+                </FieldDescription>
+              </Field>
+            </FieldGroup>
+          </form>
+        </CardContent>
+      </Card>
+      {/* <FieldDescription className="px-6 text-center">
+        By clicking continue, you agree to our{" "}
+        <a href="#" className="underline">
+          Terms of Service
+        </a>{" "}
+        and{" "}
+        <a href="#" className="underline">
+          Privacy Policy
+        </a>
+        .
+      </FieldDescription> */}
+    </div>
+  )
+}
