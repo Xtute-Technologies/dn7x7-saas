@@ -35,7 +35,7 @@ pipeline {
             steps {
                 dir("${FE_DIR}") {
                     // Inject Frontend Environment Variables (Build Time)
-                    withCredentials([file(credentialsId: 'dn7x7-frontend-env', variable: 'FE_ENV_FILE')]) {
+                    withCredentials([file(credentialsId: 'dn7x7-saas-frontend-env', variable: 'FE_ENV_FILE')]) {
                         script {
                             echo "--- Setting up Frontend Environment ---"
                             // Next.js needs env vars at BUILD time
@@ -66,7 +66,7 @@ pipeline {
             steps {
                 dir("${BE_DIR}") {
                     // Inject Backend Environment Variables (Runtime)
-                    withCredentials([file(credentialsId: 'dn7x7-backend-env', variable: 'BE_ENV_FILE')]) {
+                    withCredentials([file(credentialsId: 'dn7x7-saas-backend-env', variable: 'BE_ENV_FILE')]) {
                         script {
                             echo "--- Preparing Host Directories ---"
                             // Ensure media directory exists on host
