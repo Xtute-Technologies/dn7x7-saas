@@ -1,15 +1,7 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import {
-  IconChartBar,
-  IconDashboard,
-  IconFileDescription,
-  IconKey,
-  IconSettings,
-  IconUsers,
-  IconListDetails,
-} from "@tabler/icons-react";
+import * as React from "react";
+import { IconChartBar, IconDashboard, IconFileDescription, IconKey, IconSettings, IconUsers, IconListDetails } from "@tabler/icons-react";
 import { useAuth } from "@/context/AuthContext";
 
 import { NavMain } from "@/components/nav-main";
@@ -61,6 +53,11 @@ const navDashboard = [
     url: "/dashboard/docs",
   },
   {
+    title: "Playground",
+    icon: IconListDetails,
+    url: "/dashboard/playground",
+  },
+  {
     title: "Settings",
     icon: IconSettings,
     url: "/dashboard/settings",
@@ -83,10 +80,7 @@ export function AppSidebar({ ...props }) {
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton
-              asChild
-              className="data-[slot=sidebar-menu-button]:!p-1.5 h-10 rounded"
-            >
+            <SidebarMenuButton asChild className="data-[slot=sidebar-menu-button]:!p-1.5 h-10 rounded">
               <a href="#">
                 <img src="/logo.png" className="!size-10" />
                 <span className="text-base font-semibold">DairyNews7x7</span>
@@ -97,16 +91,14 @@ export function AppSidebar({ ...props }) {
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={navDashboard} />
-        {user && user.role === 'admin' && (
+        {user && user.role === "admin" && (
           <>
             {/* <SidebarSeparator className="my-4" /> */}
             <NavMain items={navAdmin} title="Admin" />
           </>
         )}
       </SidebarContent>
-      <SidebarFooter>
-        {user ? <NavUser user={user} /> : <div>Loading...</div>}
-      </SidebarFooter>
+      <SidebarFooter>{user ? <NavUser user={user} /> : <div>Loading...</div>}</SidebarFooter>
     </Sidebar>
   );
 }
