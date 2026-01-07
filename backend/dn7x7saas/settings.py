@@ -155,12 +155,12 @@ USE_TZ = True
 # ---------------------------------------------------------
 # STATIC & MEDIA FILES (No Whitenoise)
 # ---------------------------------------------------------
-STATIC_URL = "/static/"
+STATIC_URL = "/api/static/"
 # This directory is where collectstatic will dump files
 # We will mount this to the host system in Docker
 STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
 
-MEDIA_URL = "/media/"
+MEDIA_URL = "/api/media/"
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
