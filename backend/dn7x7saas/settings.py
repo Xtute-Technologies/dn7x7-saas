@@ -209,7 +209,7 @@ else:
 DEFAULT_FROM_EMAIL = os.getenv(
     "DEFAULT_FROM_EMAIL", "Dairynews <noreply@dn7x7saas.com>"
 )
-DOMAIN = os.getenv("NEXT_PUBLIC_DOMAIN", "localhost:3000")
+DOMAIN = os.getenv("DOMAIN", "localhost:3000")
 SITE_NAME = "DairyNews Platform"
 
 
