@@ -45,11 +45,11 @@ export default function Page() {
               Get API Key <ArrowRight className="ml-2 h-4 w-4" />
             </Link>
           </Button>
-          <Button size="lg" variant="outline" className="h-12 px-8 text-base rounded-full" asChild>
+          {/* <Button size="lg" variant="outline" className="h-12 px-8 text-base rounded-full" asChild>
             <Link href="/docs">
               Read the Docs
             </Link>
-          </Button>
+          </Button> */}
         </div>
         <div className="pt-8 flex items-center gap-8 text-sm text-muted-foreground">
           <span className="flex items-center gap-2">
@@ -72,7 +72,7 @@ export default function Page() {
             </div>
             <CardTitle className="text-2xl">Indian & Global Headlines</CardTitle>
             <CardDescription className="text-base">
-              Get the latest scoop from India's dynamic dairy sector alongside critical global market updates. All in one unified stream.
+              Get the latest scoop from India&apos;s dynamic dairy sector alongside critical global market updates. All in one unified stream.
             </CardDescription>
           </CardHeader>
           <CardContent className="relative min-h-[200px]">
@@ -111,7 +111,7 @@ export default function Page() {
                <div className="text-sm font-medium">GET /blogs/kuldeep-sharma</div>
             </div>
             <div className="text-xs text-muted-foreground italic px-2">
-              "The future of dairy lies in sustainable tech..."
+              &quot;The future of dairy lies in sustainable tech...&quot;
             </div>
           </CardContent>
         </Card>
