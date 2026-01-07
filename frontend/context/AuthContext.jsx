@@ -35,21 +35,28 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (credentials) => {
     const response = await authService.login(credentials);
-    Cookies.set('access_token', response.data.access, { secure: true, sameSite: 'strict' });
-    Cookies.set('refresh_token', response.data.refresh, { secure: true, sameSite: 'strict' });
+    
+    // Secure cookies based on environment (https check is good practice)
+    const isSecure = window.location.protocol === 'https:';
+    
+    Cookies.set('access_token', response.data.access, { secure: isSecure, sameSite: 'strict' });
+    Cookies.set('refresh_token', response.data.refresh, { secure: isSecure, sameSite: 'strict' });
+    
     const userResponse = await authService.fetchUser();
     setUser(userResponse.data);
     router.push('/dashboard');
   };
 
   const signup = async (userData) => {
+    // Call the API to create the user
     await authService.signup(userData);
-    await login({ email: userData.email, password: userData.password });
   };
 
   const logout = () => {
     authService.logout();
     setUser(null);
+    Cookies.remove('access_token');
+    Cookies.remove('refresh_token');
     router.push('/login');
   };
 
