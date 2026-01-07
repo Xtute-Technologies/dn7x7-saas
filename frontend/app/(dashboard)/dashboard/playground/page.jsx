@@ -331,7 +331,7 @@ print(response.json())`;
           </div>
 
           {/* 4. Response Area */}
-          <Card className="h-[600px] flex flex-col shadow-sm border-muted">
+          <Card className="h-[600px] flex flex-col shadow-sm border-muted overflow-y-scroll">
             <CardHeader className="py-3 px-4 border-b bg-muted/20 flex flex-row items-center justify-between space-y-0">
               <div className="flex items-center gap-2">
                 <FileJson className="h-4 w-4 text-muted-foreground" />
