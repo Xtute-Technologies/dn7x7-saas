@@ -2,9 +2,9 @@
 # Update these IDs based on your WordPress category configuration
 
 CATEGORY_MAPPING = {
-    'indian': [4],  # Indian News category term ID
-    'global': [5],  # Global News category term ID
-    'blog': [6],    # Blog category term ID
+    'indian': [23],  # Indian News category term ID
+    'global': [24],  # Global News category term ID
+    'blog': [1],    # Blog category term ID
 }
 
 # Default rate limits
