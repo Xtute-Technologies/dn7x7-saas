@@ -1,7 +1,8 @@
-from django.db import models
 from django.conf import settings
 from django.utils import timezone
 import uuid
+from django.db import models, transaction
+
 
 class APIKey(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='api_keys')
@@ -35,58 +36,68 @@ class APICallLog(models.Model):
 class UserCredit(models.Model):
     """
     Manages user credits with a daily free tier.
-    Prioritizes using 'daily_free_credits' before touching 'purchased_credits'.
+    Daily credits reset once per calendar day.
     """
-    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='credit')
-    
-    # The credits user bought/earned (Permanent)
+    DAILY_FREE_LIMIT = 20
+
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='credit'
+    )
+
     purchased_credits = models.PositiveIntegerField(default=0)
-    
-    # The daily free credits (Reset daily)
-    daily_free_credits = models.PositiveIntegerField(default=20)
-    
-    # Tracks when the daily credits were last reset
+    daily_free_credits = models.PositiveIntegerField(default=DAILY_FREE_LIMIT)
     last_daily_reset = models.DateField(default=timezone.now)
 
     def check_and_reset_daily_credits(self):
-        """
-        Checks if the last reset was yesterday (or earlier).
-        If so, resets the daily_free_credits to 20.
-        """
         today = timezone.now().date()
+
         if self.last_daily_reset < today:
-            self.daily_free_credits = 20
+            self.daily_free_credits = self.DAILY_FREE_LIMIT
             self.last_daily_reset = today
             self.save(update_fields=['daily_free_credits', 'last_daily_reset'])
 
     def has_sufficient_credits(self, cost=1):
-        """Check if user has enough credits (Daily + Purchased)"""
         self.check_and_reset_daily_credits()
         return (self.daily_free_credits + self.purchased_credits) >= cost
 
     def deduct_credits(self, cost=1):
         """
-        Deducts credits, prioritizing the daily free bucket first.
-        Returns True if successful, False if insufficient funds.
+        Atomically deduct credits.
+        Returns True if successful, False otherwise.
         """
-        if not self.has_sufficient_credits(cost):
-            return False
+        with transaction.atomic():
+            credit = (
+                UserCredit.objects
+                .select_for_update()
+                .get(pk=self.pk)
+            )
 
-        # 1. Try to take from daily free credits
-        if self.daily_free_credits >= cost:
-            self.daily_free_credits -= cost
-        else:
-            # 2. If daily isn't enough, take what's left of daily, then take rest from purchased
-            remaining_cost = cost - self.daily_free_credits
-            self.daily_free_credits = 0
-            self.purchased_credits -= remaining_cost
-        
-        self.save()
-        return True
+            credit.check_and_reset_daily_credits()
+
+            if credit.daily_free_credits + credit.purchased_credits < cost:
+                return False
+
+            if credit.daily_free_credits >= cost:
+                credit.daily_free_credits -= cost
+            else:
+                remaining = cost - credit.daily_free_credits
+                credit.daily_free_credits = 0
+                credit.purchased_credits -= remaining
+
+            credit.save(update_fields=['daily_free_credits', 'purchased_credits'])
+            return True
 
     def total_available(self):
         self.check_and_reset_daily_credits()
         return self.daily_free_credits + self.purchased_credits
 
     def __str__(self):
-        return f"{self.user.email} - Total: {self.total_available()} (Daily: {self.daily_free_credits}, Paid: {self.purchased_credits})"
+        return (
+            f"{self.user.email} | "
+            f"Total: {self.total_available()} "
+            f"(Daily: {self.daily_free_credits}, Paid: {self.purchased_credits})"
+        )
+
+  
