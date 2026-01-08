@@ -26,7 +26,7 @@ class AdminUserSerializer(BaseUserSerializer):
 
     class Meta(BaseUserSerializer.Meta):
         model = User
-        fields = ('id', 'email', 'name', 'organization', 'profile_image', 'role','date_joined','is_active')
+        fields = ('id', 'email', 'name', 'organization', 'profile_image', 'role','date_joined','is_active','is_staff')
         read_only_fields = ('is_staff',)
 
     def get_role(self, obj):

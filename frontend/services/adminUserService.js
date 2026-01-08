@@ -73,6 +73,14 @@ export const getUserLogs = (userId, params = {}) => {
   return apiClient.get(`${BASE_URL}${userId}/logs/`, { params });
 };
 
+/**
+ * Toggle user staff status (Make/Remove Admin)
+ * @param {number} id - User ID
+ */
+export const toggleUserStaff = (id) => {
+  return apiClient.post(`${BASE_URL}${id}/toggle_staff/`);
+};
+
 const adminUserService = {
   getUserLogs,
   getAllUsers,
@@ -82,6 +90,7 @@ const adminUserService = {
   deleteUser,
   addUserCredits,
   toggleUserActive,
+  toggleUserStaff, // Added
 };
 
 export default adminUserService;

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { format } from "date-fns";
-import { ArrowLeft, Calendar, Coins, Ban, Shield, CreditCard, Activity, Loader2, Download } from "lucide-react";
+import { ArrowLeft, Calendar, Coins, Ban, Shield, CreditCard, Activity, Loader2, Download, UserCog } from "lucide-react";
 import { toast } from "sonner";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -72,6 +72,17 @@ export default function UserUsagePage() {
     }
   };
 
+  const handleToggleStaff = async () => {
+    if (!user) return;
+    try {
+      const response = await adminUserService.toggleUserStaff(user.id);
+      setUser({ ...user, is_staff: response.data.is_staff, role: response.data.role });
+      toast.success("User permissions updated");
+    } catch (error) {
+      toast.error("Failed to update permissions");
+    }
+  };
+
   if (loading && !user) {
     return (
       <div className="flex h-screen items-center justify-center">
@@ -127,6 +138,10 @@ export default function UserUsagePage() {
                 {user.is_active ? <Ban className="mr-2 h-4 w-4" /> : <Shield className="mr-2 h-4 w-4" />}
                 {user.is_active ? "Ban User" : "Unban User"}
               </Button>
+              <Button variant="outline" onClick={handleToggleStaff}>
+                <UserCog className="mr-2 h-4 w-4" />
+                {user.is_staff ? "Remove Admin" : "Make Admin"}
+              </Button>
               <Button onClick={() => setCreditModalOpen(true)}>
                 <Coins className="mr-2 h-4 w-4" /> Add Credits
               </Button>
@@ -142,26 +157,42 @@ export default function UserUsagePage() {
               <span className="text-xs text-muted-foreground block">Organization</span>
               <span className="text-sm">{user.organization || "-"}</span>
             </div>
+            <div>
+              <span className="text-xs text-muted-foreground block">Joined</span>
+              <span className="text-sm">{user.date_joined ? format(new Date(user.date_joined), "MMM d, yyyy") : "-"}</span>
+            </div>
+            <div>
+              <span className="text-xs text-muted-foreground block">Last Login</span>
+              <span className="text-sm">{user.last_login ? format(new Date(user.last_login), "MMM d, yyyy") : "Never"}</span>
+            </div>
           </CardContent>
         </Card>
 
-        {/* Mini Stats (Credits) - Assuming endpoint returns credit info or it's part of user object */}
+        {/* Credit Stats Card */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Credit Balance</CardTitle>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Coins className="h-5 w-5" />
+              Credit Balance
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
               <span className="text-sm text-muted-foreground">Total Available</span>
-              {/* Use optional chaining and fallback to 0 */}
-              <span className="text-2xl font-bold">{user.credit?.remaining_credits || 0}</span>
+              <span className="text-3xl font-bold">{user.credit?.remaining_credits || 0}</span>
             </div>
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Daily Free Tier</span>
-              <span className="font-medium text-green-600">
-                {/* Show how many they have left vs the max (20) */}
-                {user.credit?.daily_free_credits || 0} / 20
-              </span>
+            <Separator />
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Purchased</span>
+                <span className="font-medium">{user.credit?.purchased_credits || 0}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Daily Free (Today)</span>
+                <span className="font-medium text-green-600">
+                  {user.credit?.daily_free_credits || 0} / 20
+                </span>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -276,7 +307,7 @@ function AddCreditDialog({ open, onOpenChange, user }) {
         <DialogHeader>
           <DialogTitle>Add Credits</DialogTitle>
           <DialogDescription>
-            Add credits to <strong>{user?.name}</strong>'s balance.
+            Add credits to <strong>{user?.name}</strong>&apos;s balance.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 py-2">

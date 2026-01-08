@@ -6,7 +6,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { 
   Loader2, Search, MoreVertical, Shield, Ban, CheckCircle, 
-  Coins, ChevronLeft, ChevronRight, Eye, Activity, Calendar
+  Coins, ChevronLeft, ChevronRight, Eye, Activity, Calendar, UserCog
 } from "lucide-react";
 import { toast } from "sonner";
 import { useDebounce } from "use-debounce";
@@ -95,6 +95,19 @@ export default function UsersPage() {
     }
   };
 
+  const handleToggleStaff = async (user) => {
+    const originalStatus = user.is_staff;
+    setUsers(users.map(u => u.id === user.id ? { ...u, is_staff: !u.is_staff, role: !u.is_staff ? 'admin' : 'user' } : u));
+    try {
+      await adminUserService.toggleUserStaff(user.id);
+      toast.success(`User permissions updated successfully`);
+      fetchUsers(); // Refresh to get updated data
+    } catch (error) {
+      setUsers(users.map(u => u.id === user.id ? { ...u, is_staff: originalStatus, role: originalStatus ? 'admin' : 'user' } : u));
+      toast.error("Failed to update permissions");
+    }
+  };
+
   const openCreditModal = (user) => {
     setSelectedUser(user);
     setCreditModalOpen(true);
@@ -137,6 +150,7 @@ export default function UsersPage() {
               <TableRow>
                 <TableHead className="pl-6">User</TableHead>
                 <TableHead>Role</TableHead>
+                <TableHead>Credits</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right pr-6">Actions</TableHead>
               </TableRow>
@@ -144,7 +158,7 @@ export default function UsersPage() {
             <TableBody>
               {loading ? (
                  <TableRow>
-                   <TableCell colSpan={4} className="h-24 text-center">
+                   <TableCell colSpan={5} className="h-24 text-center">
                      <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
                    </TableCell>
                  </TableRow>
@@ -166,6 +180,12 @@ export default function UsersPage() {
                       {user.is_staff ? <Badge variant="outline" className="bg-purple-50 text-purple-700">Admin</Badge> : <Badge variant="outline">User</Badge>}
                     </TableCell>
                     <TableCell>
+                      <div className="flex items-center gap-1 text-sm">
+                        <Coins className="h-3.5 w-3.5 text-muted-foreground" />
+                        <span className="font-medium">{user.credit?.remaining_credits || 0}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
                       {user.is_active ? 
                         <Badge variant="secondary" className="bg-green-100 text-green-700"><CheckCircle className="w-3 h-3 mr-1" /> Active</Badge> : 
                         <Badge variant="destructive"><Ban className="w-3 h-3 mr-1" /> Banned</Badge>
@@ -174,7 +194,7 @@ export default function UsersPage() {
                     <TableCell className="text-right pr-6">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => e.stopPropagation()}>
                             <MoreVertical className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
@@ -192,6 +212,11 @@ export default function UsersPage() {
                           <DropdownMenuItem onClick={(e) => { e.stopPropagation(); openCreditModal(user); }}>
                             <Coins className="mr-2 h-4 w-4" /> Add Credits
                           </DropdownMenuItem>
+                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleToggleStaff(user); }}>
+                            <UserCog className="mr-2 h-4 w-4" />
+                            {user.is_staff ? "Remove Admin" : "Make Admin"}
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
                           <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleToggleStatus(user); }}>
                             {user.is_active ? <span className="text-red-500 flex items-center"><Ban className="mr-2 h-4 w-4" /> Deactivate</span> : <span className="text-green-600 flex items-center"><Shield className="mr-2 h-4 w-4" /> Activate</span>}
                           </DropdownMenuItem>
@@ -228,6 +253,20 @@ export default function UsersPage() {
                         </Avatar>
                         <h3 className="text-xl font-bold">{selectedUser.name}</h3>
                         <p className="text-muted-foreground">{selectedUser.email}</p>
+                        <div className="flex gap-2 mt-2">
+                          {selectedUser.is_staff && (
+                            <Badge variant="outline" className="bg-purple-50 text-purple-700">
+                              Admin
+                            </Badge>
+                          )}
+                          {selectedUser.is_active ? (
+                            <Badge variant="secondary" className="bg-green-100 text-green-700">
+                              Active
+                            </Badge>
+                          ) : (
+                            <Badge variant="destructive">Banned</Badge>
+                          )}
+                        </div>
                     </div>
                     <div className="space-y-4">
                         <div className="flex items-center justify-between border-b pb-2">
@@ -242,6 +281,10 @@ export default function UsersPage() {
                             <span className="text-sm font-medium">User ID</span>
                             <span className="text-sm font-mono">{selectedUser.id}</span>
                         </div>
+                        <div className="flex items-center justify-between border-b pb-2">
+                            <span className="text-sm font-medium flex items-center"><Coins className="w-4 h-4 mr-2" /> Credits</span>
+                            <span className="text-sm font-semibold">{selectedUser.credit?.remaining_credits || 0}</span>
+                        </div>
                     </div>
                     <Button className="w-full" asChild>
                         <Link href={`/dashboard/admin/api-logs/${selectedUser.id}`}>
@@ -253,13 +296,13 @@ export default function UsersPage() {
         </SheetContent>
       </Sheet>
 
-      <AddCreditDialog open={creditModalOpen} onOpenChange={setCreditModalOpen} user={selectedUser} />
+      <AddCreditDialog open={creditModalOpen} onOpenChange={setCreditModalOpen} user={selectedUser} onSuccess={fetchUsers} />
     </div>
   );
 }
 
 // --- SUB-COMPONENT: Add Credit Dialog ---
-function AddCreditDialog({ open, onOpenChange, user }) {
+function AddCreditDialog({ open, onOpenChange, user, onSuccess }) {
     const {
         register,
         handleSubmit,
@@ -280,6 +323,7 @@ function AddCreditDialog({ open, onOpenChange, user }) {
             await adminUserService.addUserCredits(user.id, data.credits);
             toast.success(`Successfully added ${data.credits} credits to ${user.name}`);
             onOpenChange(false);
+            if (onSuccess) onSuccess(); // Refresh parent data
         } catch (error) {
             console.error(error);
             toast.error("Failed to add credits");

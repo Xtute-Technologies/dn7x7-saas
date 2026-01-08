@@ -31,6 +31,7 @@ export const updateUserSchema = z.object({
   email: z.string().email("Invalid email address").optional(),
   organization: z.string().optional(),
   is_active: z.boolean().optional(),
+  is_staff: z.boolean().optional(), // Added for admin permission changes
 });
 
 // 3. Add Credits Action

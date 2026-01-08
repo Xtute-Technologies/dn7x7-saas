@@ -23,7 +23,7 @@ class UserAdminSerializer(AdminUserSerializer):
 
     class Meta(AdminUserSerializer.Meta):
         # Add date_joined, last_login, is_active, AND credit
-        fields = AdminUserSerializer.Meta.fields + ('date_joined', 'last_login', 'is_active', 'credit')
+        fields = AdminUserSerializer.Meta.fields + ('date_joined', 'last_login', 'credit')
 
 class UserAdminViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
@@ -44,14 +44,31 @@ class UserAdminViewSet(viewsets.ModelViewSet):
         except (TypeError, ValueError):
             return Response({'error': 'Invalid credit amount.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        if credits_to_add <= 0:
-            return Response({'error': 'Credit amount must be positive.'}, status=status.HTTP_400_BAD_REQUEST)
+        if credits_to_add == 0:
+            return Response({'error': 'Credit amount cannot be zero.'}, status=status.HTTP_400_BAD_REQUEST)
 
         credit, created = UserCredit.objects.get_or_create(user=user)
-        credit.purchased_credits += credits_to_add # Add to purchased bucket
+        
+        # Handle both positive (add) and negative (remove) values
+        if credits_to_add > 0:
+            credit.purchased_credits += credits_to_add
+        else:
+            # Removing credits - ensure we don't go negative
+            credits_to_remove = abs(credits_to_add)
+            if credit.purchased_credits < credits_to_remove:
+                return Response({
+                    'error': f'Insufficient purchased credits. User has {credit.purchased_credits} purchased credits.'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            credit.purchased_credits -= credits_to_remove
+        
         credit.save()
 
-        return Response({'status': 'credits added', 'total_credits': credit.total_available()})
+        action_type = 'added' if credits_to_add > 0 else 'removed'
+        return Response({
+            'status': f'credits {action_type}', 
+            'total_credits': credit.total_available(),
+            'purchased_credits': credit.purchased_credits
+        })
 
     @action(detail=True, methods=['post'])
     def toggle_active(self, request, pk=None):
@@ -59,6 +76,21 @@ class UserAdminViewSet(viewsets.ModelViewSet):
         user.is_active = not user.is_active
         user.save()
         return Response({'status': 'user status updated', 'is_active': user.is_active})
+
+    @action(detail=True, methods=['post'])
+    def toggle_staff(self, request, pk=None):
+        """
+        Toggle user staff/admin status (Admin only).
+        """
+        user = self.get_object()
+        user.is_staff = not user.is_staff
+        user.save()
+        role = 'admin' if user.is_staff else 'user'
+        return Response({
+            'status': 'user permissions updated', 
+            'is_staff': user.is_staff,
+            'role': role
+        })
 
     # --- NEW: Admin View for User Logs ---
     @action(detail=True, methods=['get'])
