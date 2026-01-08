@@ -1,7 +1,7 @@
 from rest_framework.authentication import BaseAuthentication
 from rest_framework.exceptions import AuthenticationFailed
 from django.utils import timezone
-from .models import APIKey, APICallLog
+from billing.models import APIKey, APICallLog
 
 class APIKeyAuthentication(BaseAuthentication):
     def authenticate(self, request):
