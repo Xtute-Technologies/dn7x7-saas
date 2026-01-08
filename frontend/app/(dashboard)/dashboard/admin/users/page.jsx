@@ -301,8 +301,10 @@ export default function UsersPage() {
   );
 }
 
-// --- SUB-COMPONENT: Add Credit Dialog ---
+// --- SUB-COMPONENT: Add/Remove Credit Dialog ---
 function AddCreditDialog({ open, onOpenChange, user, onSuccess }) {
+    const [operation, setOperation] = useState("add"); // "add" or "remove"
+    
     const {
         register,
         handleSubmit,
@@ -314,19 +316,27 @@ function AddCreditDialog({ open, onOpenChange, user, onSuccess }) {
 
     // Reset form when modal opens/closes or user changes
     useEffect(() => {
-        if (!open) reset();
+        if (!open) {
+            reset();
+            setOperation("add");
+        }
     }, [open, reset]);
 
     const onSubmit = async (data) => {
         if (!user) return;
         try {
-            await adminUserService.addUserCredits(user.id, data.credits);
-            toast.success(`Successfully added ${data.credits} credits to ${user.name}`);
+            // Send negative value if removing credits
+            const creditAmount = operation === "remove" ? -Math.abs(data.credits) : data.credits;
+            await adminUserService.addUserCredits(user.id, creditAmount);
+            
+            const action = operation === "add" ? "added to" : "removed from";
+            toast.success(`Successfully ${action} ${Math.abs(data.credits)} credits ${action === "added to" ? "to" : "from"} ${user.name}`);
             onOpenChange(false);
-            if (onSuccess) onSuccess(); // Refresh parent data
+            if (onSuccess) onSuccess();
         } catch (error) {
             console.error(error);
-            toast.error("Failed to add credits");
+            const errorMsg = error.response?.data?.error || "Failed to update credits";
+            toast.error(errorMsg);
         }
     };
 
@@ -334,13 +344,40 @@ function AddCreditDialog({ open, onOpenChange, user, onSuccess }) {
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
-                    <DialogTitle>Add Credits</DialogTitle>
+                    <DialogTitle>Manage Credits</DialogTitle>
                     <DialogDescription>
-                        Manually add usage credits to <strong>{user?.name}</strong>.
+                        Add or remove purchased credits for <strong>{user?.name}</strong>.
+                        {user?.credit && (
+                            <span className="block mt-2 text-sm font-medium">
+                                Current Balance: {user.credit.purchased_credits || 0} purchased credits
+                            </span>
+                        )}
                     </DialogDescription>
                 </DialogHeader>
                 
                 <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 py-2">
+                    <div className="space-y-2">
+                        <Label htmlFor="operation">Operation</Label>
+                        <div className="flex gap-2">
+                            <Button
+                                type="button"
+                                variant={operation === "add" ? "default" : "outline"}
+                                className="flex-1"
+                                onClick={() => setOperation("add")}
+                            >
+                                Add Credits
+                            </Button>
+                            <Button
+                                type="button"
+                                variant={operation === "remove" ? "destructive" : "outline"}
+                                className="flex-1"
+                                onClick={() => setOperation("remove")}
+                            >
+                                Remove Credits
+                            </Button>
+                        </div>
+                    </div>
+
                     <div className="space-y-2">
                         <Label htmlFor="credits">Amount</Label>
                         <div className="relative">
@@ -356,15 +393,24 @@ function AddCreditDialog({ open, onOpenChange, user, onSuccess }) {
                         {errors.credits && (
                             <p className="text-red-500 text-xs">{errors.credits.message}</p>
                         )}
+                        <p className="text-xs text-muted-foreground">
+                            {operation === "add" 
+                                ? "Credits will be added to the user's purchased balance."
+                                : "Credits will be deducted from the user's purchased balance only."}
+                        </p>
                     </div>
                     
                     <DialogFooter>
                         <Button type="button" variant="secondary" onClick={() => onOpenChange(false)}>
                             Cancel
                         </Button>
-                        <Button type="submit" disabled={isSubmitting}>
+                        <Button 
+                            type="submit" 
+                            disabled={isSubmitting}
+                            variant={operation === "remove" ? "destructive" : "default"}
+                        >
                             {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            Confirm Transfer
+                            {operation === "add" ? "Add Credits" : "Remove Credits"}
                         </Button>
                     </DialogFooter>
                 </form>

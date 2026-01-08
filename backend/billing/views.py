@@ -3,7 +3,7 @@ from rest_framework.response import Response
 from rest_framework.decorators import action
 from .models import APIKey, APICallLog, UserCredit
 from .serializers import APIKeySerializer, APICallLogSerializer, UserCreditSerializer
-
+from rest_framework import status
 class DashboardViewSet(viewsets.GenericViewSet):
     """
     Unified viewset for User Dashboard to manage API Keys and Credits.
@@ -53,3 +53,34 @@ class DashboardViewSet(viewsets.GenericViewSet):
         logs = APICallLog.objects.filter(api_key__user=request.user).order_by('-timestamp')[:50] # Last 50 logs
         serializer = APICallLogSerializer(logs, many=True)
         return Response(serializer.data)
+
+class APIKeyViewSet(viewsets.ModelViewSet):
+    queryset = APIKey.objects.all()
+    serializer_class = APIKeySerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def create(self, request, *args, **kwargs):
+        """Override create to enforce daily limit cap"""
+        daily_limit = request.data.get('daily_limit')
+        
+        # Validate daily limit
+        if daily_limit:
+            try:
+                daily_limit = int(daily_limit)
+                if daily_limit < 1:
+                    return Response(
+                        {'detail': 'Daily limit must be at least 1.'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                if daily_limit > 20:
+                    return Response(
+                        {'detail': 'Daily limit cannot exceed 20 requests.'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+            except (ValueError, TypeError):
+                return Response(
+                    {'detail': 'Invalid daily limit value.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        
+        return super().create(request, *args, **kwargs)

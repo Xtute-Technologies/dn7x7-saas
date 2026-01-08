@@ -189,9 +189,7 @@ export default function UserUsagePage() {
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Daily Free (Today)</span>
-                <span className="font-medium text-green-600">
-                  {user.credit?.daily_free_credits || 0} / 20
-                </span>
+                <span className="font-medium text-green-600">{user.credit?.daily_free_credits || 0} / 20</span>
               </div>
             </div>
           </CardContent>
@@ -275,8 +273,10 @@ export default function UserUsagePage() {
   );
 }
 
-// Re-using the same AddCreditDialog from the list page for consistency
+// Re-using the same AddCreditDialog with add/remove functionality
 function AddCreditDialog({ open, onOpenChange, user }) {
+  const [operation, setOperation] = useState("add");
+
   const {
     register,
     handleSubmit,
@@ -287,17 +287,24 @@ function AddCreditDialog({ open, onOpenChange, user }) {
   });
 
   useEffect(() => {
-    if (!open) reset();
+    if (!open) {
+      reset();
+      setOperation("add");
+    }
   }, [open, reset]);
 
   const onSubmit = async (data) => {
     if (!user) return;
     try {
-      await adminUserService.addUserCredits(user.id, data.credits);
-      toast.success(`Credits added successfully`);
+      const creditAmount = operation === "remove" ? -Math.abs(data.credits) : data.credits;
+      await adminUserService.addUserCredits(user.id, creditAmount);
+
+      const action = operation === "add" ? "added" : "removed";
+      toast.success(`Credits ${action} successfully`);
       onOpenChange(false);
     } catch (error) {
-      toast.error("Failed to add credits");
+      const errorMsg = error.response?.data?.error || "Failed to update credits";
+      toast.error(errorMsg);
     }
   };
 
@@ -305,22 +312,47 @@ function AddCreditDialog({ open, onOpenChange, user }) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Add Credits</DialogTitle>
+          <DialogTitle>Manage Credits</DialogTitle>
           <DialogDescription>
-            Add credits to <strong>{user?.name}</strong>&apos;s balance.
+            Add or remove credits for <strong>{user?.name}</strong>&apos;s balance.
+            {user?.credit && (
+              <span className="block mt-2 text-sm font-medium">Current: {user.credit.purchased_credits || 0} purchased credits</span>
+            )}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 py-2">
+          <div className="space-y-2">
+            <Label>Operation</Label>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant={operation === "add" ? "default" : "outline"}
+                className="flex-1"
+                onClick={() => setOperation("add")}>
+                Add
+              </Button>
+              <Button
+                type="button"
+                variant={operation === "remove" ? "destructive" : "outline"}
+                className="flex-1"
+                onClick={() => setOperation("remove")}>
+                Remove
+              </Button>
+            </div>
+          </div>
+
           <div className="space-y-2">
             <Label>Amount</Label>
             <Input type="number" {...register("credits")} placeholder="100" />
             {errors.credits && <p className="text-red-500 text-xs">{errors.credits.message}</p>}
           </div>
+
           <DialogFooter>
             <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button type="submit" disabled={isSubmitting}>
+            <Button type="submit" disabled={isSubmitting} variant={operation === "remove" ? "destructive" : "default"}>
+              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Confirm
             </Button>
           </DialogFooter>

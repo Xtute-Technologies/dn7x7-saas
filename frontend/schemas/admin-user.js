@@ -34,11 +34,10 @@ export const updateUserSchema = z.object({
   is_staff: z.boolean().optional(), // Added for admin permission changes
 });
 
-// 3. Add Credits Action
+// 3. Add/Remove Credits Action
 export const addCreditsSchema = z.object({
-  credits: z.coerce // .coerce allows string inputs "50" to become number 50
+  credits: z.coerce
     .number()
     .int("Credits must be a whole number")
-    .positive("Credit amount must be positive")
-    .min(1, "Minimum 1 credit required"),
+    .refine((val) => val !== 0, "Credit amount cannot be zero"),
 });

@@ -153,7 +153,7 @@ function CreateKeyModal({ isOpen, setIsOpen, onSuccess }) {
   } = useForm({
     resolver: zodResolver(createAPIKeySchema),
     defaultValues: {
-      daily_limit: 1000,
+      daily_limit: 20, // Changed from 1000 to 20
     },
   });
 
@@ -165,7 +165,7 @@ function CreateKeyModal({ isOpen, setIsOpen, onSuccess }) {
       reset();
       onSuccess(); // Refresh parent list
     } catch (error) {
-      toast.error("Failed to create API key");
+      toast.error(error.response?.data?.detail || "Failed to create API key");
     }
   };
 
@@ -180,7 +180,7 @@ function CreateKeyModal({ isOpen, setIsOpen, onSuccess }) {
         <DialogHeader>
           <DialogTitle>Create API Key</DialogTitle>
           <DialogDescription>
-            Generate a new key to access the API. Set a daily limit to control usage.
+            Generate a new key to access the API. Maximum daily limit is 20 requests.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 py-4">
@@ -190,13 +190,18 @@ function CreateKeyModal({ isOpen, setIsOpen, onSuccess }) {
             {errors.name && <p className="text-red-500 text-xs">{errors.name.message}</p>}
           </div>
           <div className="space-y-2">
-            <Label htmlFor="daily_limit">Daily Limit</Label>
+            <Label htmlFor="daily_limit">Daily Limit (Max: 20)</Label>
             <Input 
               id="daily_limit" 
-              type="number" 
+              type="number"
+              min="1"
+              max="20"
               {...register("daily_limit")} 
             />
             {errors.daily_limit && <p className="text-red-500 text-xs">{errors.daily_limit.message}</p>}
+            <p className="text-xs text-muted-foreground">
+              Set how many API calls this key can make per day (1-20).
+            </p>
           </div>
           <DialogFooter>
             <Button type="submit" disabled={isSubmitting}>

@@ -7,7 +7,9 @@ export const createAPIKeySchema = z.object({
   name: z.string().min(1, "Key name is required").max(50, "Name is too long"),
   daily_limit: z.coerce // coerce handles string-to-number conversion from inputs
     .number()
-    .min(1, "Limit must be at least 1")
+    .int("Daily limit must be a whole number")
+    .min(1, "Minimum 1 request per day")
+    .max(20, "Maximum daily limit is 20 requests")
     .optional()
     .default(1000),
 });
