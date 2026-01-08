@@ -210,7 +210,7 @@ DEFAULT_FROM_EMAIL = os.getenv(
     "DEFAULT_FROM_EMAIL", "Dairynews <noreply@dn7x7saas.com>"
 )
 DOMAIN = os.getenv("DOMAIN", "localhost:3000")
-SITE_NAME = "DairyNews Platform"
+SITE_NAME = "DairyNews7x7 API"
 
 
 # Djoser Configuration
